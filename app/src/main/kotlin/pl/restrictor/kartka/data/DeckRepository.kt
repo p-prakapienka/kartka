@@ -14,6 +14,7 @@ import pl.restrictor.kartka.domain.CollectionSnapshot
 import pl.restrictor.kartka.domain.DeckCodec
 import pl.restrictor.kartka.domain.ImportPlan
 import pl.restrictor.kartka.domain.KnownIds
+import pl.restrictor.kartka.domain.RepeatDelays
 import pl.restrictor.kartka.domain.Rating
 import pl.restrictor.kartka.domain.ScheduleState
 import pl.restrictor.kartka.domain.Scheduler
@@ -150,9 +151,9 @@ class DeckRepository(private val db: AppDatabase) {
 
     suspend fun deleteCard(id: Long) = db.cards().delete(id)
 
-    suspend fun review(cardId: Long, rating: Rating, now: Long) {
+    suspend fun review(cardId: Long, rating: Rating, now: Long, delays: RepeatDelays) {
         val card = db.cards().get(cardId) ?: return
-        val next = Scheduler.review(card.toSchedule(), rating, now)
+        val next = Scheduler.review(card.toSchedule(), rating, now, delays)
         db.cards().update(
             card.copy(
                 ease = next.ease,

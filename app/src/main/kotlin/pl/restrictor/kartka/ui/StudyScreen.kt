@@ -52,10 +52,14 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.launch
 import pl.restrictor.kartka.R
 import pl.restrictor.kartka.data.DeckRepository
+import pl.restrictor.kartka.data.RepeatSettings
 import pl.restrictor.kartka.data.StudyCard
 import pl.restrictor.kartka.data.StudyTarget
+import pl.restrictor.kartka.domain.DelayAmounts
+import pl.restrictor.kartka.domain.DelayUnit
 import pl.restrictor.kartka.domain.DueLabel
 import pl.restrictor.kartka.domain.Rating
+import pl.restrictor.kartka.domain.RepeatDelays
 import pl.restrictor.kartka.domain.SessionQueue
 
 data class StudyUiState(
@@ -68,12 +72,17 @@ data class StudyUiState(
     val current: StudyCard? = null,
     val revealed: Boolean = false,
     val remaining: Int = 0,
+    val delays: RepeatDelays = RepeatDelays.Default,
     val nextDueAt: Long? = null,
     val hasAnyCards: Boolean = false,
     val busy: Boolean = false,
 )
 
-class StudyViewModel(private val repository: DeckRepository, private val target: StudyTarget) : ViewModel() {
+class StudyViewModel(
+    private val repository: DeckRepository,
+    private val repeatSettings: RepeatSettings,
+    private val target: StudyTarget,
+) : ViewModel() {
     var state by mutableStateOf(StudyUiState())
         private set
     private var queue: List<StudyCard> = emptyList()
@@ -90,6 +99,7 @@ class StudyViewModel(private val repository: DeckRepository, private val target:
                 state = StudyUiState(loading = false, missing = true)
                 return@launch
             }
+            val delays = repeatSettings.get()
             queue = loaded.cards
             state = StudyUiState(
                 loading = false,
@@ -99,6 +109,7 @@ class StudyViewModel(private val repository: DeckRepository, private val target:
                 color = loaded.color,
                 current = queue.firstOrNull(),
                 remaining = queue.size,
+                delays = delays,
                 nextDueAt = loaded.nextDueAt,
                 hasAnyCards = loaded.hasAnyCards,
             )
@@ -116,13 +127,9 @@ class StudyViewModel(private val repository: DeckRepository, private val target:
         viewModelScope.launch {
             try {
                 val now = System.currentTimeMillis()
-                repository.review(card.id, rating, now)
-                val ids = queue.map { it.id }
-                val nextIds = if (rating == Rating.AGAIN) {
-                    SessionQueue.afterAgain(ids, card.id)
-                } else {
-                    SessionQueue.afterPass(ids, card.id)
-                }
+                val delays = repeatSettings.get()
+                repository.review(card.id, rating, now, delays)
+                val nextIds = SessionQueue.afterGrade(queue.map { it.id }, card.id)
                 val byId = queue.associateBy { it.id }
                 queue = nextIds.mapNotNull { byId[it] }
                 val finished = queue.isEmpty()
@@ -130,6 +137,7 @@ class StudyViewModel(private val repository: DeckRepository, private val target:
                     current = queue.firstOrNull(),
                     revealed = false,
                     remaining = queue.size,
+                    delays = delays,
                     nextDueAt = if (finished) repository.nextDue(target, now) else state.nextDueAt,
                     busy = false,
                 )
@@ -140,18 +148,27 @@ class StudyViewModel(private val repository: DeckRepository, private val target:
     }
 
     companion object {
-        fun factory(repository: DeckRepository, target: StudyTarget): ViewModelProvider.Factory = viewModelFactory {
-            initializer { StudyViewModel(repository, target) }
+        fun factory(
+            repository: DeckRepository,
+            repeatSettings: RepeatSettings,
+            target: StudyTarget,
+        ): ViewModelProvider.Factory = viewModelFactory {
+            initializer { StudyViewModel(repository, repeatSettings, target) }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun StudyScreen(repository: DeckRepository, target: StudyTarget, onBack: () -> Unit) {
+fun StudyScreen(
+    repository: DeckRepository,
+    repeatSettings: RepeatSettings,
+    target: StudyTarget,
+    onBack: () -> Unit,
+) {
     val viewModel = viewModel<StudyViewModel>(
         key = target.key(),
-        factory = StudyViewModel.factory(repository, target),
+        factory = StudyViewModel.factory(repository, repeatSettings, target),
     )
     val state = viewModel.state
     val haptic = LocalHapticFeedback.current
@@ -187,17 +204,17 @@ fun StudyScreen(repository: DeckRepository, target: StudyTarget, onBack: () -> U
                             .navigationBarsPadding(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        RatingButton(stringResource(R.string.again), Rating.AGAIN, state.busy) {
+                        RatingButton(stringResource(R.string.bad), delayLabel(state.delays.badMs), Rating.BAD, state.busy) {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.rate(Rating.AGAIN)
+                            viewModel.rate(Rating.BAD)
                         }
-                        RatingButton(stringResource(R.string.good), Rating.GOOD, state.busy) {
+                        RatingButton(stringResource(R.string.medium), delayLabel(state.delays.mediumMs), Rating.MEDIUM, state.busy) {
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            viewModel.rate(Rating.MEDIUM)
+                        }
+                        RatingButton(stringResource(R.string.good), delayLabel(state.delays.goodMs), Rating.GOOD, state.busy) {
                             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             viewModel.rate(Rating.GOOD)
-                        }
-                        RatingButton(stringResource(R.string.easy), Rating.EASY, state.busy) {
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            viewModel.rate(Rating.EASY)
                         }
                     }
                 }
@@ -305,14 +322,20 @@ fun StudyScreen(repository: DeckRepository, target: StudyTarget, onBack: () -> U
 }
 
 @Composable
-private fun RowScope.RatingButton(label: String, rating: Rating, busy: Boolean, onClick: () -> Unit) {
+private fun RowScope.RatingButton(
+    label: String,
+    delay: String,
+    rating: Rating,
+    busy: Boolean,
+    onClick: () -> Unit,
+) {
     val colors = when (rating) {
-        Rating.AGAIN -> ButtonDefaults.buttonColors(
+        Rating.BAD -> ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.error,
             contentColor = MaterialTheme.colorScheme.onError,
         )
-        Rating.GOOD -> ButtonDefaults.buttonColors()
-        Rating.EASY -> ButtonDefaults.buttonColors(
+        Rating.MEDIUM -> ButtonDefaults.buttonColors()
+        Rating.GOOD -> ButtonDefaults.buttonColors(
             containerColor = MaterialTheme.colorScheme.tertiary,
             contentColor = MaterialTheme.colorScheme.onTertiary,
         )
@@ -320,10 +343,23 @@ private fun RowScope.RatingButton(label: String, rating: Rating, busy: Boolean, 
     Button(
         onClick = onClick,
         enabled = !busy,
-        modifier = Modifier.weight(1f).heightIn(min = 56.dp),
+        modifier = Modifier.weight(1f).heightIn(min = 64.dp),
         colors = colors,
     ) {
-        Text(label, textAlign = TextAlign.Center)
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(label, textAlign = TextAlign.Center)
+            Text(delay, textAlign = TextAlign.Center, style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}
+
+@Composable
+private fun delayLabel(ms: Long): String {
+    val amount = DelayAmounts.fromMillis(ms)
+    return when (amount.unit) {
+        DelayUnit.MINUTES -> pluralStringResource(R.plurals.delay_minutes, amount.count, amount.count)
+        DelayUnit.HOURS -> pluralStringResource(R.plurals.delay_hours, amount.count, amount.count)
+        DelayUnit.DAYS -> pluralStringResource(R.plurals.delay_days, amount.count, amount.count)
     }
 }
 

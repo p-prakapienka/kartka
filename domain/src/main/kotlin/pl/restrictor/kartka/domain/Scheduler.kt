@@ -1,11 +1,74 @@
 package pl.restrictor.kartka.domain
 
-import kotlin.math.round
-
 enum class Rating {
-    AGAIN,
+    BAD,
+    MEDIUM,
     GOOD,
-    EASY,
+}
+
+enum class DelayUnit {
+    MINUTES,
+    HOURS,
+    DAYS,
+}
+
+data class DelayAmount(val count: Int, val unit: DelayUnit)
+
+data class RepeatDelays(
+    val badMs: Long,
+    val mediumMs: Long,
+    val goodMs: Long,
+) {
+    fun forRating(rating: Rating): Long = when (rating) {
+        Rating.BAD -> badMs
+        Rating.MEDIUM -> mediumMs
+        Rating.GOOD -> goodMs
+    }
+
+    fun sanitized(): RepeatDelays = RepeatDelays(
+        badMs = badMs.coerceIn(DelayAmounts.MIN_MS, DelayAmounts.MAX_MS),
+        mediumMs = mediumMs.coerceIn(DelayAmounts.MIN_MS, DelayAmounts.MAX_MS),
+        goodMs = goodMs.coerceIn(DelayAmounts.MIN_MS, DelayAmounts.MAX_MS),
+    )
+
+    companion object {
+        val Default = RepeatDelays(
+            badMs = DelayAmounts.toMillis(1, DelayUnit.HOURS),
+            mediumMs = DelayAmounts.toMillis(1, DelayUnit.DAYS),
+            goodMs = DelayAmounts.toMillis(7, DelayUnit.DAYS),
+        )
+    }
+}
+
+object DelayAmounts {
+    const val MIN_MS = 60_000L
+    const val MAX_MS = 365L * 24 * 60 * 60 * 1000
+
+    private const val MINUTE_MS = 60_000L
+    private const val HOUR_MS = 3_600_000L
+    private const val DAY_MS = 86_400_000L
+
+    fun toMillis(count: Int, unit: DelayUnit): Long {
+        val unitMs = when (unit) {
+            DelayUnit.MINUTES -> MINUTE_MS
+            DelayUnit.HOURS -> HOUR_MS
+            DelayUnit.DAYS -> DAY_MS
+        }
+        return count.toLong() * unitMs
+    }
+
+    fun isAllowed(count: Int, unit: DelayUnit): Boolean {
+        if (count < 1) return false
+        val ms = toMillis(count, unit)
+        return ms in MIN_MS..MAX_MS
+    }
+
+    fun fromMillis(ms: Long): DelayAmount {
+        val safe = ms.coerceIn(MIN_MS, MAX_MS)
+        if (safe % DAY_MS == 0L) return DelayAmount((safe / DAY_MS).toInt(), DelayUnit.DAYS)
+        if (safe % HOUR_MS == 0L) return DelayAmount((safe / HOUR_MS).toInt(), DelayUnit.HOURS)
+        return DelayAmount((safe / MINUTE_MS).toInt().coerceAtLeast(1), DelayUnit.MINUTES)
+    }
 }
 
 data class ScheduleState(
@@ -32,62 +95,27 @@ object Scheduler {
     const val MIN_EASE = 1.3
     const val MAX_EASE = 3.0
     const val DEFAULT_EASE = 2.5
-    const val MAX_INTERVAL_DAYS = 180
-    const val AGAIN_DELAY_MS = 10 * 60 * 1000L
+    const val MAX_INTERVAL_DAYS = 365
 
-    private const val DAY_MS = 24L * 60 * 60 * 1000
+    private const val DAY_MS = 86_400_000L
 
-    fun review(state: ScheduleState, rating: Rating, nowEpochMs: Long): ScheduleState {
-        return when (rating) {
-            Rating.AGAIN -> state.copy(
-                ease = (state.ease - 0.2).coerceIn(MIN_EASE, MAX_EASE),
-                intervalDays = 0,
-                repetitions = 0,
-                lapses = state.lapses + 1,
-                dueAtEpochMs = nowEpochMs + AGAIN_DELAY_MS,
-                lastReviewedAtEpochMs = nowEpochMs,
-            )
-            Rating.GOOD -> {
-                val days = goodInterval(state).coerceIn(1, MAX_INTERVAL_DAYS)
-                state.copy(
-                    intervalDays = days,
-                    repetitions = state.repetitions + 1,
-                    dueAtEpochMs = nowEpochMs + days * DAY_MS,
-                    lastReviewedAtEpochMs = nowEpochMs,
-                )
-            }
-            Rating.EASY -> {
-                val ease = (state.ease + 0.15).coerceIn(MIN_EASE, MAX_EASE)
-                val days = easyInterval(state, ease).coerceIn(1, MAX_INTERVAL_DAYS)
-                state.copy(
-                    ease = ease,
-                    intervalDays = days,
-                    repetitions = state.repetitions + 1,
-                    dueAtEpochMs = nowEpochMs + days * DAY_MS,
-                    lastReviewedAtEpochMs = nowEpochMs,
-                )
-            }
-        }
-    }
-
-    private fun goodInterval(state: ScheduleState): Int = when {
-        state.repetitions <= 0 -> 1
-        state.repetitions == 1 -> 3
-        else -> round(state.intervalDays * state.ease).toInt().coerceAtLeast(1)
-    }
-
-    private fun easyInterval(state: ScheduleState, ease: Double): Int = when {
-        state.repetitions <= 0 -> 3
-        state.repetitions == 1 -> round(3.0 * ease).toInt().coerceAtLeast(4)
-        else -> round(state.intervalDays * ease * 1.3).toInt().coerceAtLeast(state.intervalDays + 1)
+    fun review(
+        state: ScheduleState,
+        rating: Rating,
+        nowEpochMs: Long,
+        delays: RepeatDelays = RepeatDelays.Default,
+    ): ScheduleState {
+        val wait = delays.sanitized().forRating(rating)
+        return state.copy(
+            intervalDays = (wait / DAY_MS).toInt(),
+            repetitions = if (rating == Rating.BAD) 0 else state.repetitions + 1,
+            lapses = if (rating == Rating.BAD) state.lapses + 1 else state.lapses,
+            dueAtEpochMs = nowEpochMs + wait,
+            lastReviewedAtEpochMs = nowEpochMs,
+        )
     }
 }
 
 object SessionQueue {
-    fun afterAgain(ids: List<Long>, currentId: Long): List<Long> {
-        if (ids.size <= 1) return ids
-        return ids.filterNot { it == currentId } + currentId
-    }
-
-    fun afterPass(ids: List<Long>, currentId: Long): List<Long> = ids.filterNot { it == currentId }
+    fun afterGrade(ids: List<Long>, currentId: Long): List<Long> = ids.filterNot { it == currentId }
 }

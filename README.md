@@ -4,7 +4,7 @@ Kartka is a flashcard app for Android. Topics hold collections, collections hold
 
 A topic is a pair of labels, such as English → Polish, Russian → Belarusian, or Belarusian → Belarusian for facts. A collection is a group inside that topic, such as Food or Travel.
 
-Cards you know come back later. Cards you miss come back in about 10 minutes. Nothing is ever marked finished. The longest gap is 180 days.
+Cards you know come back in a week. Cards you miss come back in an hour. Nothing is ever marked finished. Those waits can be changed in the app.
 
 ## Install
 
@@ -21,7 +21,9 @@ A tag such as `v1.0.0` also attaches `kartka-v1.0.0.apk` to a GitHub Release. Ac
 
 ## Study
 
-Open a collection and tap Study, or study every due card in a topic. Tap the card to reveal the back, then choose Again, Good, or Easy.
+Open a collection and tap Study, or study every due card in a topic. Tap the card to reveal the back, then choose Bad, Medium, or Good.
+
+Bad waits 1 hour, Medium waits 1 day, and Good waits 1 week. Change those times with the settings icon on the topics screen. A graded card leaves the session and comes back after its wait. It is not shown again immediately.
 
 ## Import and export
 

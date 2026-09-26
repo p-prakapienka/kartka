@@ -27,12 +27,13 @@ import kotlinx.coroutines.withContext
 import pl.restrictor.kartka.R
 import pl.restrictor.kartka.data.DeckFiles
 import pl.restrictor.kartka.data.DeckRepository
+import pl.restrictor.kartka.data.RepeatSettings
 import pl.restrictor.kartka.data.StudyTarget
 
 private data class ImportRequest(val collectionOnly: Boolean, val preferredTopicId: Long?)
 
 @Composable
-fun KartkaRoot(repository: DeckRepository) {
+fun KartkaRoot(repository: DeckRepository, repeatSettings: RepeatSettings) {
     val navController = rememberNavController()
     val importViewModel = viewModel<ImportViewModel>(factory = ImportViewModel.factory(repository))
     val snackbar = remember { SnackbarHostState() }
@@ -70,6 +71,7 @@ fun KartkaRoot(repository: DeckRepository) {
                     repository = repository,
                     onOpen = { navController.navigate("topics/$it") },
                     onImport = { launchImport(false, null) },
+                    onSettings = { navController.navigate("settings") },
                     onMessage = { message -> scope.launch { snackbar.showSnackbar(message) } },
                 )
             }
@@ -99,10 +101,14 @@ fun KartkaRoot(repository: DeckRepository) {
                     onMessage = { message -> scope.launch { snackbar.showSnackbar(message) } },
                 )
             }
+            composable("settings") {
+                SettingsScreen(settings = repeatSettings, onBack = { navController.popBackStack() })
+            }
             composable("study/topic/{topicId}") { entry ->
                 val topicId = entry.arguments?.getString("topicId")?.toLongOrNull() ?: return@composable
                 StudyScreen(
                     repository = repository,
+                    repeatSettings = repeatSettings,
                     target = StudyTarget.Topic(topicId),
                     onBack = { navController.popBackStack() },
                 )
@@ -111,6 +117,7 @@ fun KartkaRoot(repository: DeckRepository) {
                 val collectionId = entry.arguments?.getString("collectionId")?.toLongOrNull() ?: return@composable
                 StudyScreen(
                     repository = repository,
+                    repeatSettings = repeatSettings,
                     target = StudyTarget.Collection(collectionId),
                     onBack = { navController.popBackStack() },
                 )

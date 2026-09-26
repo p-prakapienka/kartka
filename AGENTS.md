@@ -15,9 +15,10 @@ Blocking rules and review checks are in this file. [docs/implementation-plan.md]
 
 These are blocking. A change that breaks one is not done.
 
-- Cards are never finished. Good and Easy only push `dueAt` out. The cap is 180 days.
-- Again sets the interval to 0, increments lapses, drops ease by 0.2, and sets `dueAt` to now + 10 minutes. Ease stays inside 1.3..3.0. Default ease is 2.5.
-- In a study session, Again moves that card to the end of the queue so every other due card is seen first. A single remaining card stays. Good and Easy remove the card from the session. Do not reinsert Again a fixed number of places ahead; that traps the session on the first three cards.
+- Cards are never finished. Bad, Medium, and Good only set `dueAt`. Nothing is removed from the deck.
+- The wait is not an increasing formula. Bad, Medium, and Good each wait a fixed time. Defaults are 1 hour, 1 day, and 7 days. The user changes those times in the app (Repeat times on the topics screen). Allowed range is 1 minute to 365 days. A grade uses the times saved at that moment. It does not rewrite cards already scheduled.
+- A graded card leaves the study session. Do not put it back in the queue. One card graded Bad is not shown again until it is due.
+- Ease is kept on the card for older files, but a grade does not change it. Bad resets repetitions to 0 and adds a lapse. Medium and Good add a repetition.
 - Leaving a session does not delete cards. The stored `dueAt` is what brings them back.
 - JSON format is `kartka`, version `1`. Kind is `topic` or `collection`. Unknown keys are ignored. A bad file imports nothing, not a partial deck.
 - A `uid` is 1..80 characters matching `^[A-Za-z0-9_.:-]{1,80}$`. It is not required to be a UUID. The app mints UUIDs for rows it creates. Uids are unique inside one file and unique in the database across topics, collections, and cards.
@@ -31,9 +32,7 @@ These are blocking. A change that breaks one is not done.
 
 ## Study and storage
 
-Room database name is `kartka.db`. Schedule fields on a card are `ease`, `intervalDays`, `repetitions`, `lapses`, `dueAt`, `lastReviewedAt`. Time is epoch millis in the database and ISO-8601 instants in JSON. Omit schedule fields on import to create a new card due now.
-
-Good intervals: first success 1 day, second 3 days, later `round(intervalDays * ease)` days. Easy intervals: first 3 days, second `round(3 * ease)` (at least 4), later `round(intervalDays * ease * 1.3)` and at least one day more than the current interval. Both cap at 180.
+Room database name is `kartka.db`. Schedule fields on a card are `ease`, `intervalDays`, `repetitions`, `lapses`, `dueAt`, `lastReviewedAt`. Time is epoch millis in the database and ISO-8601 instants in JSON. Omit schedule fields on import to create a new card due now. Repeat times are not in the database. They live in the `kartka-repeat` preferences: `bad_ms`, `medium_ms`, `good_ms`.
 
 Topic colors are `teal`, `blue`, `violet`, `rose`, `amber`, `green`. Anything else becomes `teal`.
 
@@ -56,4 +55,4 @@ Accounts, sync, a backend, FSRS or extra ratings, widgets, and Play Store signin
 
 ## Review
 
-Before finishing, check the diff against the invariants above. Report blocking misses first: a scheduler change without a test, a JSON change that breaks version 1 files, a new signing key, a network permission, or a study queue that can hide cards behind Again. Style nits are not blocking.
+Before finishing, check the diff against the invariants above. Report blocking misses first: a grade that shows the same card again immediately, repeat times that cannot be changed in the app, a scheduler change without a test, a JSON change that breaks version 1 files, a new signing key, or a network permission. Style nits are not blocking.

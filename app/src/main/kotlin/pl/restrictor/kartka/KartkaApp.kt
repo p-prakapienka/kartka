@@ -3,6 +3,7 @@ package pl.restrictor.kartka
 import android.app.Application
 import android.content.Context
 import pl.restrictor.kartka.data.DeckRepository
+import pl.restrictor.kartka.data.RepeatSettings
 import pl.restrictor.kartka.data.db.AppDatabase
 
 class KartkaApp : Application() {
@@ -17,4 +18,5 @@ class KartkaApp : Application() {
 
 class AppGraph(context: Context) {
     val repository: DeckRepository = DeckRepository(AppDatabase.create(context))
+    val repeatSettings: RepeatSettings = RepeatSettings(context.applicationContext)
 }

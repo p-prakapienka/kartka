@@ -11,10 +11,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        val repository = (application as KartkaApp).graph.repository
+        val graph = (application as KartkaApp).graph
         setContent {
             KartkaTheme {
-                KartkaRoot(repository)
+                KartkaRoot(graph.repository, graph.repeatSettings)
             }
         }
     }

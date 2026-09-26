@@ -45,7 +45,7 @@ Topic `color` may be `teal`, `blue`, `violet`, `rose`, `amber`, or `green`. Anyt
 
 A new card needs only `uid`, `front`, and `back`. Omit `ease`, `intervalDays`, `repetitions`, `lapses`, `dueAt`, and `lastReviewedAt`. The card is then due immediately.
 
-If any of those six fields is present, the card is not new. Missing ones among them default to ease 2.5, interval 0, repetitions 0, lapses 0, and due now. Do not set them unless the user asked to preserve review progress. `dueAt` and `lastReviewedAt` must be ISO-8601 instants. Negative review numbers are rejected. Ease is clamped to 1.3..3.0 and the interval to at most 180.
+If any of those six fields is present, the card is not new. Missing ones among them default to ease 2.5, interval 0, repetitions 0, lapses 0, and due now. Do not set them unless the user asked to preserve review progress. `dueAt` and `lastReviewedAt` must be ISO-8601 instants. Negative review numbers are rejected. Ease is clamped to 1.3..3.0 and the interval to at most 365.
 
 ## Topic file
 

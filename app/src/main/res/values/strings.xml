@@ -37,9 +37,15 @@
     <string name="too_long">Too long</string>
     <string name="color">Color</string>
     <string name="show_answer">Show answer</string>
-    <string name="again">Again</string>
+    <string name="bad">Bad</string>
+    <string name="medium">Medium</string>
     <string name="good">Good</string>
-    <string name="easy">Easy</string>
+    <string name="repeat_times">Repeat times</string>
+    <string name="repeat_times_body">A graded card leaves this session and comes back after the time you set. The next grade uses the new times. Cards you already graded keep their current due time.</string>
+    <string name="minutes">Minutes</string>
+    <string name="hours">Hours</string>
+    <string name="days">Days</string>
+    <string name="delay_range">Each time must be from 1 minute to 365 days.</string>
     <string name="tap_to_reveal">Tap to reveal</string>
     <string name="nothing_due">Nothing is due</string>
     <string name="no_cards">No cards yet</string>
@@ -87,5 +93,17 @@
     <plurals name="collections">
         <item quantity="one">%d collection</item>
         <item quantity="other">%d collections</item>
+    </plurals>
+    <plurals name="delay_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
+    <plurals name="delay_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <plurals name="delay_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
     </plurals>
 </resources>
