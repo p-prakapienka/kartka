@@ -8,7 +8,11 @@ Cards you know come back later. Cards you miss come back in about 10 minutes. No
 
 ## Install
 
-The debug APK is signed with the debug key and can be installed directly.
+The debug APK is signed with a key stored in the repo (`app/kartka-debug.keystore`, password `android`). Every build uses that same key, and the version number goes up, so a new APK can be installed over the one already on the phone. Your cards stay.
+
+Builds from before this key cannot be updated in place. Export each topic, uninstall Kartka, install the new APK, then import. That uninstall is only needed once.
+
+On Android 10 and later, uninstalling Kartka asks whether to keep the app data. Leave that checked if you are going to install Kartka again. Uninstalling without keeping the data, or clearing storage, deletes the deck. Export JSON first if you want a copy that does not depend on the phone.
 
 1. Open the latest successful run of the **Android** workflow and download the `kartka-debug-apk` artifact, or open a GitHub Release created by a `v*` tag.
 2. On the phone, allow installs from that source, then open the APK.

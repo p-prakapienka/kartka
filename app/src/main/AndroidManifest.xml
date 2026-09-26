@@ -11,6 +11,7 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:enableOnBackInvokedCallback="true"
+        android:hasFragileUserData="true"
         android:theme="@style/Theme.Kartka">
         <activity
             android:name=".MainActivity"

@@ -13,12 +13,27 @@ android {
         applicationId = "pl.restrictor.kartka"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0.0"
+        // CI passes -Pkartka.versionCode so each build can replace the previous one.
+        versionCode = (findProperty("kartka.versionCode") as String?)?.toIntOrNull() ?: 2
+        versionName = "1.1.0"
+    }
+
+    signingConfigs {
+        getByName("debug") {
+            // Public sideload key, checked in on purpose so every APK can update the last one.
+            storeFile = file("kartka-debug.keystore")
+            storePassword = "android"
+            keyAlias = "kartkadebug"
+            keyPassword = "android"
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

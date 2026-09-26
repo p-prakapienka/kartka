@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
-    <include domain="database" path="." />
+    <include domain="database" path="kartka.db" />
+    <include domain="database" path="kartka.db-wal" />
+    <include domain="database" path="kartka.db-shm" />
 </full-backup-content>
