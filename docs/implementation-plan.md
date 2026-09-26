@@ -1,8 +1,6 @@
 # Implementation plan
 
-Kartka is a local Android flashcard app. This is the plan the code follows. The steps below are already implemented. Extend them in place. Do not scaffold a second app, a backend, or an account system.
-
-Blocking rules and review checks are in [AGENTS.md](../AGENTS.md). If a product decision here changes, update this file in the same change.
+Kartka is a local Android flashcard app. This document is the initial design. Later work may read it for context. Do not update it to match later changes. Current rules for agents are in [AGENTS.md](../AGENTS.md).
 
 ## 1. Product
 
@@ -124,4 +122,4 @@ Domain tests are the contract. Add or update them when the rule changes.
 
 ## 11. Not in this plan
 
-Accounts, sync, a server, ads, extra ratings, FSRS, widgets, and a Play Store upload key. Do not add them unless the plan is changed first.
+Accounts, sync, a server, ads, extra ratings, FSRS, widgets, and a Play Store upload key.
