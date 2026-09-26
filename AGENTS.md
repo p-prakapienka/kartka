@@ -2,7 +2,7 @@
 
 Kartka is an offline Android flashcard app. Package `pl.restrictor.kartka`. A topic is a label pair (English → Polish, Russian → Belarusian, or Belarusian → Belarusian for facts). A topic holds collections. A collection holds cards. There is no account, no ads, and no network.
 
-Read this file before changing behavior. Prefer a small correct change over a cleanup of untouched code.
+Blocking rules and review checks are in this file. The build steps and screen map are in [docs/implementation-plan.md](docs/implementation-plan.md). If a product decision changes, update that plan in the same change. Prefer a small correct change over a cleanup of untouched code.
 
 ## Layout
 
