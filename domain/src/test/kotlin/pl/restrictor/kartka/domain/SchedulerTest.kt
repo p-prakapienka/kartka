@@ -88,10 +88,19 @@ class SchedulerTest {
     }
 
     @Test
-    fun againWaitsBehindTwoOtherCards() {
+    fun againGoesToTheEndSoTheRestOfTheDeckIsSeen() {
         assertEquals(listOf(2L, 3L, 1L), SessionQueue.afterAgain(listOf(1, 2, 3), 1))
         assertEquals(listOf(2L, 1L), SessionQueue.afterAgain(listOf(1, 2), 1))
         assertEquals(listOf(1L), SessionQueue.afterAgain(listOf(1), 1))
+        assertEquals(listOf(2L, 3L, 4L, 5L, 1L), SessionQueue.afterAgain(listOf(1, 2, 3, 4, 5), 1))
         assertEquals(listOf(2L, 3L), SessionQueue.afterPass(listOf(1, 2, 3), 1))
+
+        var queue = listOf(1L, 2L, 3L, 4L, 5L)
+        val seen = mutableListOf<Long>()
+        repeat(queue.size) {
+            seen += queue.first()
+            queue = SessionQueue.afterAgain(queue, queue.first())
+        }
+        assertEquals(listOf(1L, 2L, 3L, 4L, 5L), seen)
     }
 }

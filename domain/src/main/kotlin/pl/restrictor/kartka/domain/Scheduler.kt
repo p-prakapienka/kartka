@@ -85,12 +85,8 @@ object Scheduler {
 
 object SessionQueue {
     fun afterAgain(ids: List<Long>, currentId: Long): List<Long> {
-        val rest = ids.filterNot { it == currentId }
-        val index = minOf(2, rest.size)
-        return buildList {
-            addAll(rest)
-            add(index, currentId)
-        }
+        if (ids.size <= 1) return ids
+        return ids.filterNot { it == currentId } + currentId
     }
 
     fun afterPass(ids: List<Long>, currentId: Long): List<Long> = ids.filterNot { it == currentId }
